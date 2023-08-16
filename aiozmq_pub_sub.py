@@ -14,11 +14,13 @@ async def pub():
         bind="tcp://127.0.0.1:5556",
     )
 
-    while True:
-        await asyncio.sleep(1)
-        msg = [str(time.time()).encode()]
+    i = 0
+    await asyncio.sleep(0.1)
+    while i < 200:
+        msg = f"{i} - {time.time()}".encode()
         logging.info(f"write {msg}")
-        stream.write(msg)
+        stream.write([msg])
+        i += 1
 
 
 async def sub(name: str):
@@ -32,17 +34,20 @@ async def sub(name: str):
         logging.info(f"{name} waiting ...")
         msg = await stream.read()
         logging.info(f"{name} received {msg}")
+        await asyncio.sleep(1)
 
 
 def main():
     # task group
     async def do():
+        pub_task = asyncio.create_task(pub())
         async with asyncio.TaskGroup() as g:
-            g.create_task(pub())
             g.create_task(sub(name="sub1"))
             g.create_task(sub(name="sub2"))
             await asyncio.sleep(10)
-            await g.cancel_remaining()
+
+        pub_task.cancel()
+        await asyncio.sleep(1)
 
     asyncio.run(do())
     logging.info("DONE")

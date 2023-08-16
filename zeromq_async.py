@@ -1,54 +1,43 @@
+"""ZeroMQ has its own asyncio impl of context
+"""
+
 import asyncio
 
-import aiozmq
+import zmq
+import zmq.asyncio
+
+ctx = zmq.asyncio.Context()
 
 
-async def async_task1():
-    ctx = await aiozmq.create_zmq_context()
-    socket = await ctx.socket(aiozmq.ZMQ_PUB)
-    await socket.bind("tcp://127.0.0.1:5555")  # Bind to a specific address
+async def pub():
+    sock = ctx.socket(zmq.PUB)
+    sock.bind("inproc://example")
 
-    # Simulate generating work items (messages) and sending them
-    work_items = ["Work Item 1", "Work Item 2", "Work Item 3"]
-    for item in work_items:
-        await socket.send_string(item)
-        print(f"Process 1 sent: {item}")
-
-    # Send a termination signal to process2
-    await socket.send_string("TERMINATE")
-    print("Process 1 sent termination signal")
-
-    # Close the socket and context
-    await socket.close()
-    await ctx.destroy()
-    print("Process 1 complete.")
-
-
-async def async_task2():
-    ctx = await aiozmq.create_zmq_context()
-    socket = await ctx.socket(aiozmq.ZMQ_SUB)
-    await socket.connect("tcp://127.0.0.1:5555")  # Connect to the same address as process1
-    await socket.setsockopt_string(aiozmq.ZMQ_SUBSCRIBE, "")  # Subscribe to all topics
-
-    print("Starting to receive messages...")
     while True:
-        message = await socket.recv_string()
-        if message == "TERMINATE":
-            break
-
-        print(f"Process 2 received: {message}")
-
-    # Close the socket and context
-    await socket.close()
-    await ctx.destroy()
+        await sock.send(b"Hello from publisher")
+        await asyncio.sleep(1)
 
 
-async def main():
-    task1 = asyncio.create_task(async_task1())
-    task2 = asyncio.create_task(async_task2())
+async def sub():
+    sock = ctx.socket(zmq.SUB)
+    sock.connect("inproc://example")
+    sock.setsockopt_string(zmq.SUBSCRIBE, "")
 
-    await asyncio.gather(task1, task2)
+    while True:
+        msg = await sock.recv()
+        print(f"Received: {msg.decode('utf-8')}")
+        await asyncio.sleep(1)
+
+
+async def async_main():
+    tg = asyncio.gather(pub(), sub())
+    await tg
+
+
+def main():
+    asyncio.run(async_main())
+    print("DONE")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
