@@ -13,9 +13,11 @@ async def pub():
     sock = ctx.socket(zmq.PUB)
     sock.bind("inproc://example")
 
+    i = 0
     while True:
-        await sock.send(b"Hello from publisher")
+        await sock.send(f"Hello from publisher {i}".encode("utf-8"))
         await asyncio.sleep(1)
+        i += 1
 
 
 async def sub():
