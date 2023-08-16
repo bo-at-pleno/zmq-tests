@@ -13,6 +13,7 @@ ctx = zmq.asyncio.Context()
 async def pub(publisher_id):
     sock = ctx.socket(zmq.PUB)
     sock.bind("tcp://127.0.0.1:5555")
+
     topics = ["topic1", "topic2", "topic3"]
 
     while True:
@@ -26,7 +27,7 @@ async def sub(subscriber_id):
     sock = ctx.socket(zmq.SUB)
     for pub_id in range(3):
         sock.connect("tcp://127.0.0.1:5555")
-    sock.setsockopt_string(zmq.SUBSCRIBE, "")
+    sock.setsockopt_string(zmq.SUBSCRIBE, f"topic{subscriber_id+1}")
 
     while True:
         topic, message = await sock.recv_multipart()
