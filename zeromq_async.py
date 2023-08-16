@@ -3,7 +3,7 @@ import asyncio
 import aiozmq
 
 
-async def process1():
+async def async_task1():
     ctx = await aiozmq.create_zmq_context()
     socket = await ctx.socket(aiozmq.ZMQ_PUB)
     await socket.bind("tcp://127.0.0.1:5555")  # Bind to a specific address
@@ -24,7 +24,7 @@ async def process1():
     print("Process 1 complete.")
 
 
-async def process2():
+async def async_task2():
     ctx = await aiozmq.create_zmq_context()
     socket = await ctx.socket(aiozmq.ZMQ_SUB)
     await socket.connect("tcp://127.0.0.1:5555")  # Connect to the same address as process1
@@ -44,8 +44,8 @@ async def process2():
 
 
 async def main():
-    task1 = asyncio.create_task(process1())
-    task2 = asyncio.create_task(process2())
+    task1 = asyncio.create_task(async_task1())
+    task2 = asyncio.create_task(async_task2())
 
     await asyncio.gather(task1, task2)
 
